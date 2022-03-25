@@ -25,7 +25,6 @@ from scipy import sparse
 from numba import jit, vectorize
 import math
 import numexpr
-import unittest
 
 coefprime = np.array([1,-8, 0, 8, -1])
 coefsec = np.array([-1, 16, -30, 16, -1])
