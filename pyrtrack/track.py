@@ -22,6 +22,7 @@ from scipy.ndimage.morphology import grey_erosion, grey_dilation, binary_dilatio
 from scipy.ndimage import measurements
 from scipy.sparse.linalg import splu, spsolve
 from scipy import sparse
+from scipy.spatial import KDTree
 from numba import jit, vectorize
 import math
 import numexpr
@@ -82,6 +83,23 @@ def get_deconv_kernel(im, k=1.6, pxZ = 1.0, pxX=1.0):
 def deconvolve(im, kernel):
     """Deconvolve the input image. Suppose no noise (already blurred input)."""
     return np.fft.irfft(np.fft.rfft(im, axis=0) * kernel[:,None,None], axis=0, n=im.shape[0])
+
+def get_bonds(positions, radii, maxdist=3.0):
+    """Bonds by relative distances, such that $r_{ij} < maxdist (R_i + R_j)$.
+
+    Returns pairs, distances. Pairs are sorted and unique."""
+    assert len(positions)==len(radii)
+    tree = KDTree(positions)
+    rmax = radii.max()
+    #fetch all potential pairs, already sorted
+    pairs = tree.query_pairs(2*rmax*maxdist, output_type='ndarray')
+    if len(pairs) == 0:
+        return np.zeros((0,2), int), np.zeros(0)
+    #compute all pair's square distances via numpy
+    dists = np.sum((positions[pairs[:,0]] - positions[pairs[:,1]])**2, -1)
+    #filter out the pairs that are too far
+    good = dists < maxdist**2 * radii[pairs].sum(-1)**2
+    return pairs[good], np.sqrt(dists[good])
 
 def radius2scale(R, k=1.6, n=3.0, dim=3):
     """Converts a radius (in pixels) to a scale index (logarithmic scale corresponding to the inner working of a MultiscaleTracker)"""
