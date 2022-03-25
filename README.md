@@ -3,7 +3,7 @@
 
 A Python package to localise and size spherical particles of various sizes as
 explained in Mathieu Leocmach, & Hajime Tanaka *A novel particle tracking method with individual particle size measurement and its application to ordering in glassy hard sphere colloids.* **Soft Matter** 9, 1447–1457 (2013).
-doi:[10.1039/c2sm27107a](https://doi.org/10.1039/c2sm27107a.
+doi:[10.1039/c2sm27107a](https://doi.org/10.1039/c2sm27107a).
 
 Author: Mathieu Leocmach
 
@@ -25,4 +25,6 @@ Dependencies are numpy, scipy and numba. Tested with python 3.
 
 You can install with pip: pip install -e .
 
-##Usage
+## Usage
+
+You can find a 2D tutorial in (pyrtrack/notebooks/Multiscale.ipynb)[https://github.com/MathieuLeocmach/pyrtrack/blob/master/pyrtrack/notebooks/Multiscale.ipynb
