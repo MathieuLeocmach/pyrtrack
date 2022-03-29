@@ -27,4 +27,8 @@ You can install with pip: pip install -e .
 
 ## Usage
 
-You can find a 2D tutorial in [pyrtrack/notebooks/Multiscale.ipynb](https://github.com/MathieuLeocmach/pyrtrack/blob/master/pyrtrack/notebooks/Multiscale.ipynb)
+You can find a 2D tutorial in [pyrtrack/notebooks/Multiscale.ipynb](pyrtrack/notebooks/Multiscale.ipynb)
+
+For the sake of comparison, an implementation of Crocker and Grier finder is implemented, with a 2D tutorial in [pyrtrack/notebooks/CrockerGrier.ipynb](pyrtrack/notebooks/Multiscale.ipynb)
+
+You can find a 3D tutorial including deconvolution in [pyrtrack/notebooks/Deconvolution.ipynb](pyrtrack/notebooks/Deconvolution.ipynb)
