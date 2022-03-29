@@ -617,7 +617,7 @@ class MultiscaleBlobFinder:
             centers = []
         if len(self.octaves)>1:
             if deconvKernel is not None:
-                assert len(deconvKernel) == image.shape[0]/2+1
+                assert len(deconvKernel) == int(image.shape[0]//2+1)
                 assert image.ndim == 3
                 #deconvolve the Z direction by a precalculated kernel
                 #To avoid noise amplification, the blurred image is deconvolved, not the raw one
