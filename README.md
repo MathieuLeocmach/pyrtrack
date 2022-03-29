@@ -27,4 +27,4 @@ You can install with pip: pip install -e .
 
 ## Usage
 
-You can find a 2D tutorial in (pyrtrack/notebooks/Multiscale.ipynb)[https://github.com/MathieuLeocmach/pyrtrack/blob/master/pyrtrack/notebooks/Multiscale.ipynb
+You can find a 2D tutorial in [pyrtrack/notebooks/Multiscale.ipynb](https://github.com/MathieuLeocmach/pyrtrack/blob/master/pyrtrack/notebooks/Multiscale.ipynb)
