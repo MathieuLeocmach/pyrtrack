@@ -17,9 +17,7 @@
 #
 import numpy as np
 import time
-from scipy.ndimage.filters import gaussian_filter, uniform_filter
-from scipy.ndimage.morphology import grey_erosion, grey_dilation, binary_dilation
-from scipy.ndimage import measurements
+from scipy import ndimage as ndi
 import numexpr
 from .rescale import scale2radius
 
@@ -31,7 +29,7 @@ def get_deconv_kernel(im, k=1.6, pxZ = 1.0, pxX=1.0):
     """Compute the deconvolution kernel from a priori isotropic image.
     Returned kernel is in Fourier space."""
     assert im.ndim == 3
-    imbl = gaussian_filter(im, k)
+    imbl = ndi.gaussian_filter(im, k)
     sblx = (np.abs(np.fft.rfft(imbl, axis=2))**2).mean(0).mean(0)
     sblz = (np.abs(np.fft.rfft(imbl, axis=0))**2).mean(1).mean(1)
     f2 = np.interp(
@@ -60,18 +58,18 @@ class CrockerGrierFinder:
         #fill the first layer by the input
         self.blurred[:] = image
         #Gaussian filter
-        gaussian_filter(self.blurred, k, output=self.blurred)
+        ndi.gaussian_filter(self.blurred, k, output=self.blurred)
         #background removal
         if background is None:
             if uniform_size is None:
                 uniform_size = int(10*k)
             if uniform_size>0:
-                uniform_filter(self.blurred, uniform_size, output=self.background)
+                ndi.uniform_filter(self.blurred, uniform_size, output=self.background)
                 self.blurred -= self.background
         else:
             self.blurred -= background
         #Dilation
-        grey_dilation(self.blurred, [3]*self.blurred.ndim, output=self.dilated)
+        ndi.grey_dilation(self.blurred, [3]*self.blurred.ndim, output=self.dilated)
 
     def initialize_binary(self, maxedge=-1, threshold=None):
         if threshold is None:
@@ -171,12 +169,12 @@ class OctaveBlobFinder:
         self.sizes, sigmas_iter = self.get_iterative_radii(k)
         #Gaussian filters
         for l, layer in enumerate(self.layersG[:-1]):
-            gaussian_filter(layer, sigmas_iter[l], output=self.layersG[l+1])
+            ndi.gaussian_filter(layer, sigmas_iter[l], output=self.layersG[l+1])
         #Difference of gaussians
         for l in range(len(self.layers)):
             self.layers[l] = self.layersG[l+1] - self.layersG[l]
         #Erosion 86.2 ms
-        grey_erosion(self.layers, [3]*self.layers.ndim, output=self.eroded)
+        ndi.grey_erosion(self.layers, [3]*self.layers.ndim, output=self.eroded)
         #scale space minima, whose neighbourhood are all negative 10 ms
         self.time_fill += time.process_time()-t0
 
@@ -208,12 +206,12 @@ class OctaveBlobFinder:
             #if a local maximum in the Gaussian layer 1 is
             #within 2px of a potential (but doomed) center in the DoG layer 0
             #add it to binary layer 1
-            self.binary[0] = binary_dilation(
+            self.binary[0] = ndi.binary_dilation(
                 self.binary[0],
                 np.ones([5]*(self.layers.ndim-1))
                 )
             #local maxima of the 0th Gaussian layer, idem Crocker&Grier
-            self.binary[0] &= grey_dilation(
+            self.binary[0] &= ndi.grey_dilation(
                 self.layersG[0],
                 [3]*(self.layers.ndim-1)
                 ) == self.layersG[0]
@@ -305,16 +303,16 @@ class OctaveBlobFinder:
                         ]
                     )])
                 #label only the negative pixels
-                labels = measurements.label(ngb<0)[0]
+                labels = ndi.measurements.label(ngb<0)[0]
                 lab = labels[tuple(rv)]
                 #value
-                centers[i,0] = measurements.mean(ngb, labels, [lab])
+                centers[i,0] = ndi.measurements.mean(ngb, labels, [lab])
                 #pedestal removal
-                ped = measurements.maximum(ngb, labels, [lab])
+                ped = ndi.measurements.maximum(ngb, labels, [lab])
                 if ped!=self.layers[tuple(p.tolist())]: #except if only one pixel or uniform value
                     ngb -= ped
                 #center of mass
-                centers[i,1:] = (np.asanyarray(measurements.center_of_mass(
+                centers[i,1:] = (np.asanyarray(ndi.measurements.center_of_mass(
                     ngb, labels, [lab]
                     ))-rv)+p
                 #the subscale resolution is calculated using only 3 pixels
@@ -374,7 +372,7 @@ class MultiscaleBlobFinder:
             for a in range(image.ndim):
                 im2 = np.repeat(im2, 2, a)
             #preblur octave -1
-            gaussian_filter(im2, k, output=self.preblurred)
+            ndi.gaussian_filter(im2, k, output=self.preblurred)
             #locate blobs in octave -1
             centers = [self.octaves[0](self.preblurred, k, maxedge, maxDoG=maxDoG)]
         else:
@@ -385,11 +383,11 @@ class MultiscaleBlobFinder:
                 assert image.ndim == 3
                 #deconvolve the Z direction by a precalculated kernel
                 #To avoid noise amplification, the blurred image is deconvolved, not the raw one
-                deconv = deconvolve(gaussian_filter(image.astype(float), k), deconvKernel)
+                deconv = deconvolve(ndi.gaussian_filter(image.astype(float), k), deconvKernel)
                 #remove negative values
                 centers += [self.octaves[1](np.maximum(0, deconv), maxedge=maxedge, first_layer=first_layer, maxDoG=maxDoG)]
             else:
-                centers += [self.octaves[1](gaussian_filter(image, k), maxedge=maxedge, first_layer=first_layer, maxDoG=maxDoG)]
+                centers += [self.octaves[1](ndi.gaussian_filter(image, k), maxedge=maxedge, first_layer=first_layer, maxDoG=maxDoG)]
         #subsample the -3 layerG of the previous octave
         #which is two times more blurred that layer 0
         #and use it as the base of new octave
