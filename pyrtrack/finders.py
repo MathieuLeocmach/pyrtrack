@@ -110,19 +110,22 @@ class CrockerGrierFinder:
 
     def subpix(self):
         """Extract and refine to subpixel resolution the positions and size of the blobs"""
-        nb_centers = self.binary.sum()
+        nb_centers = int(self.binary.sum())
         if nb_centers==0 or self.binary.min():
             return np.zeros([0, self.blurred.ndim+1])
         centers = np.empty([nb_centers, self.blurred.ndim+1])
         #original positions of the centers
         c0 = np.transpose(np.where(self.binary))
-        for i, p in enumerate(c0):
-            #neighbourhood
-            ngb = self.blurred[tuple([slice(u-2, u+3) for u in p])]
-            for dim in range(ngb.ndim):
-                a = ngb[tuple([1]*(ngb.ndim-1-dim)+[slice(None)]+[1]*dim)]
-                centers[i,dim+1] = p[dim] - np.dot(coefprime,a)/np.dot(coefsec,a)
-            centers[i,0] = ngb.mean()
+        #copy neighbourhoods
+        ngbs = np.zeros((5,)*self.blurred.ndim+(nb_centers,))
+        for index in np.ndindex(ngbs.shape[:-1]):
+            ps = c0 + np.array(list(index))
+            ngbs[index] = self.blurred[tuple(ps.T)]
+        ndim = self.blurred.ndim
+        for dim in range(ndim):
+            a = ngbs[tuple([2]*(ndim-1-dim) + [slice(None)] + [2]*dim)]
+            centers[:, dim+1] = c0[:,dim] - (coefprime*a.T).sum(-1)/(coefsec*a.T).sum(-1)
+        centers[:,0] = ngbs.mean(axis=tuple(range(ndim)))
         return centers
 
     def __call__(self, image, k=1.6, maxedge=-1, threshold=None, uniform_size=None, background=None):
