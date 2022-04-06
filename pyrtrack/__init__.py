@@ -7,4 +7,4 @@ explained in Leocmach & Tanaka Soft Matter (2013).
 doi:[10.1039/c2sm27107a](https://doi.org/10.1039/c2sm27107a.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
