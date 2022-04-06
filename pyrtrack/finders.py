@@ -21,6 +21,7 @@ from scipy.ndimage.filters import gaussian_filter, uniform_filter
 from scipy.ndimage.morphology import grey_erosion, grey_dilation, binary_dilation
 from scipy.ndimage import measurements
 import numexpr
+from .rescale import scale2radius
 
 coefprime = np.array([1,-8, 0, 8, -1])
 coefsec = np.array([-1, 16, -30, 16, -1])
