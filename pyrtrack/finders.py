@@ -80,23 +80,26 @@ class CrockerGrierFinder:
                 {'b':self.blurred, 'd':self.dilated, 'thr':threshold}
                 )
         #eliminate blobs that are edges
-        if self.blurred.ndim==2 and maxedge>0 :
-            for p in np.transpose(np.where(self.binary)):
-                #xy neighbourhood
-                ngb = self.blurred[tuple([slice(u-1, u+2) for u in p])]
-                #compute the XYhessian matrix coefficients
-                hess = [
-                    ngb[0, 1] - 2*ngb[1, 1] + ngb[-1,1],
-                    ngb[1, 0] - 2*ngb[1, 1] + ngb[1,-1],
-                    ngb[0,0] + ngb[-1,-1] - ngb[0,-1] - ngb[-1,0]
-                    ]
-                #determinant of the Hessian, for the coefficient see
-                #H Bay, a Ess, T Tuytelaars, and L Vangool,
-                #Computer Vision and Image Understanding 110, 346-359 (2008)
-                detH = hess[0]*hess[1] - hess[2]**2
-                ratio = (hess[0]+hess[1])**2/(4.0*hess[0]*hess[1])
-                if detH<0 or ratio>maxedge:
-                    self.binary[tuple(p.tolist())] = False
+        if self.blurred.ndim==2 and maxedge>0:
+            c0 = np.transpose(np.where(self.binary))
+            #copy neighbourhoods
+            ngbs = np.zeros((3,)*self.blurred.ndim+(nb_centers,))
+            for index in np.ndindex(ngbs.shape[:-1]):
+                ps = c0 + np.array(list(index))
+                ngbs[index] = self.blurred[tuple(ps.T)]
+            #compute the XYhessian matrix coefficients
+            hess = [
+                ngbs[0, 1] - 2*ngbs[1, 1] + ngbs[-1,1],
+                ngbs[1, 0] - 2*ngbs[1, 1] + ngbs[1,-1],
+                ngbs[0,0] + ngbs[-1,-1] - ngbs[0,-1] - ngbs[-1,0]
+                ]
+            #determinant of the Hessian, for the coefficient see
+            #H Bay, a Ess, T Tuytelaars, and L Vangool,
+            #Computer Vision and Image Understanding 110, 346-359 (2008)
+            detH = hess[0]*hess[1] - hess[2]**2
+            ratio = (hess[0]+hess[1])**2/(4.0*hess[0]*hess[1])
+            for p in c0[(detH<0) | (ratio>maxedge)]:
+                self.binary[tuple(p.tolist())] = False
 
     def no_subpix(self):
         """extracts centers positions and values from binary without subpixel resolution"""
