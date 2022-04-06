@@ -69,7 +69,7 @@ class CrockerGrierFinder:
         else:
             self.blurred -= background
         #Dilation
-        ndi.grey_dilation(self.blurred, [3]*self.blurred.ndim, output=self.dilated)
+        ndi.grey_dilation(self.blurred, [3]*self.blurred.ndim, mode='constant', cval=self.blurred.max()+1, output=self.dilated)
 
     def initialize_binary(self, maxedge=-1, threshold=None):
         if threshold is None:
@@ -79,10 +79,6 @@ class CrockerGrierFinder:
                 '(b==d) & (b>thr)',
                 {'b':self.blurred, 'd':self.dilated, 'thr':threshold}
                 )
-        #eliminate particles on the edges of image
-        for a in range(self.binary.ndim):
-            self.binary[tuple([slice(None)]*(self.binary.ndim-1-a)+[slice(0,2)])]=False
-            self.binary[tuple([slice(None)]*(self.binary.ndim-1-a)+[slice(-2, None)])]=False
         #eliminate blobs that are edges
         if self.blurred.ndim==2 and maxedge>0 :
             for p in np.transpose(np.where(self.binary)):
@@ -173,7 +169,7 @@ class OctaveBlobFinder:
         #Difference of gaussians
         for l in range(len(self.layers)):
             self.layers[l] = self.layersG[l+1] - self.layersG[l]
-        #Erosion 86.2 ms
+        #Erosion without edges 86.2 ms
         ndi.grey_erosion(self.layers, [3]*self.layers.ndim, output=self.eroded)
         #scale space minima, whose neighbourhood are all negative 10 ms
         self.time_fill += time.process_time()-t0
