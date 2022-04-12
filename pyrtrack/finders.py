@@ -324,13 +324,21 @@ class OctaveBlobFinder:
                 #center of mass in each dimension of the neighbourhood
                 cl += shift
                 slopes = np.ogrid[[slice(-(L//2), L//2+1) for L in ngbs.shape[:-1]]]
-                for dim, slope in enumerate(slopes):
+                for dim, slope in enumerate(slopes[1:]):
                     #print((ngbs * slope[...,None]).sum(spatial_axes) / ngbs.sum(spatial_axes))
-                    centers_l[:, 1+dim] = cl[:,dim] + np.where(
+                    centers_l[:, 2+dim] = cl[:,1+dim] + np.where(
                         denom**2 + 1.0 > 1.0,
                         (ngbs * slope[...,None]).sum(spatial_axes) / ngbs.sum(spatial_axes),
                         0
                     )
+                #interpolation along scale uses only 3 points
+                ngbs = ngbs[(slice(None),)+(slice(self.sizes[l], self.sizes[l]+1),)*ndim]
+                denom = ngbs.sum(spatial_axes)
+                centers_l[:, 1] = cl[:,0] + np.where(
+                    denom**2 + 1.0 > 1.0,
+                    (ngbs * slopes[0][...,None]).sum(spatial_axes) / ngbs.sum(spatial_axes),
+                    0
+                )
                 centers.append(centers_l)
             centers = np.vstack(centers)
         return centers
