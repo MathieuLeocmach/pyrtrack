@@ -294,37 +294,45 @@ class OctaveBlobFinder:
                 centers[i,1:] = p + dx
                 centers[i,0] = ngb[tuple([1]*ngb.ndim)]+0.5*np.dot(dx,grad)
         else:
-            for i, p in enumerate(c0):
+            centers = []#xp.empty([nb_centers, self.layers.ndim+1])
+            #number of spatial dimensions
+            ndim = self.layers.ndim-1
+            for l in range(1,self.layers.shape[0]-1):
+                #centers in that layer:
+                cl = np.array(np.nonzero(self.binary[l][None])).T
+                cl[:,0] = l
+                #shift to the edge of the neighbourhood
+                shift = np.array([1] + [self.sizes[l]]*ndim)
+                cl -= shift
+                centers_l = np.empty([len(cl), self.layers.ndim+1])
                 #neighbourhood, three pixels in the scale axis,
                 #but according to scale in space
-                r = self.sizes[p[0]]
-                rv = [1]+[r]*(self.layers.ndim-1)
-                ngb = np.copy(self.layers[tuple(
-                    [slice(p[0]-1,p[0]+2)]+[
-                        slice(u-r, u+r+1) for u in p[1:]
-                        ]
-                    )])
-                #label only the negative pixels
-                labels = ndi.measurements.label(ngb<0)[0]
-                lab = labels[tuple(rv)]
-                #value
-                centers[i,0] = ndi.measurements.mean(ngb, labels, [lab])
+                ngbs = np.zeros((3,)+(2*self.sizes[l]+1,)*ndim+(len(cl),))
+                for index in np.ndindex(ngbs.shape[:-1]):
+                    ps = cl + np.array(list(index))
+                    ngbs[index] = self.layers[tuple(ps.T)]
+                spatial_axes = tuple(range(ndim+1))
+                #only the negative pixels
+                mask = (ngbs<0)
+                centers_l[:,0] = (ngbs*mask).sum(spatial_axes) / mask.sum(spatial_axes)
                 #pedestal removal
-                ped = ndi.measurements.maximum(ngb, labels, [lab])
-                if ped!=self.layers[tuple(p.tolist())]: #except if only one pixel or uniform value
-                    ngb -= ped
-                #center of mass
-                centers[i,1:] = (np.asanyarray(ndi.measurements.center_of_mass(
-                    ngb, labels, [lab]
-                    ))-rv)+p
-                #the subscale resolution is calculated using only 3 pixels
-                n = ngb[tuple(
-                    [slice(None)]+[r]*(self.layers.ndim-1)
-                    )].ravel()
-                denom = (n[2] - 2 * n[1] + n[0])
-                if (abs(denom)+1.0)**2 > 1.0:
-                    centers[i,1] = p[0] - (n[2] - n[0]) / 2.0 / denom
-                else: centers[i,1] = p[0]
+                ped = (ngbs-ngbs.min(spatial_axes)*(~mask)).max(spatial_axes)
+                ngbs -= ped
+                #burn the mask
+                ngbs *= mask
+                denom = ngbs.sum(spatial_axes)
+                #center of mass in each dimension of the neighbourhood
+                cl += shift
+                slopes = np.ogrid[[slice(-(L//2), L//2+1) for L in ngbs.shape[:-1]]]
+                for dim, slope in enumerate(slopes):
+                    #print((ngbs * slope[...,None]).sum(spatial_axes) / ngbs.sum(spatial_axes))
+                    centers_l[:, 1+dim] = cl[:,dim] + np.where(
+                        denom**2 + 1.0 > 1.0,
+                        (ngbs * slope[...,None]).sum(spatial_axes) / ngbs.sum(spatial_axes),
+                        0
+                    )
+                centers.append(centers_l)
+            centers = np.vstack(centers)
         return centers
 
     def __call__(self, image, k=1.6, maxedge=-1, first_layer=False, maxDoG=None):
