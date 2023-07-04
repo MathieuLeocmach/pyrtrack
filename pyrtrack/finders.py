@@ -69,7 +69,7 @@ class CrockerGrierFinder:
         else:
             self.blurred -= background
         #Dilation
-        ndi.grey_dilation(self.blurred, [3]*self.blurred.ndim, mode='constant', cval=self.blurred.max()+1, output=self.dilated)
+        ndi.grey_dilation(self.blurred, [5]*self.blurred.ndim, mode='constant', cval=self.blurred.max()+1, output=self.dilated)
 
     def initialize_binary(self, maxedge=-1, threshold=None):
         if threshold is None:
